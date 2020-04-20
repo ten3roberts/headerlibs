@@ -8,6 +8,15 @@
 // To configure the library, add the define under <CONFIGURATION> above the header include in the C file declaring the implementation
 // hashtable can be safely included several times, but only one C file can define HASHTABLE_IMPLEMENTATION
 
+// CONFIGURATION
+// HASHTABLE_SIZE_TOLERANCE (70) sets the tolerance in percent that will cause the table to resize
+// -> If the table count is HASHTABLE_SIZE_TOLERANCE of the total size, it will resize, likewise down
+// -> If set to 0, the hashtable will not resize
+// -> Value is clamped to >= 50 if not 0
+// HASHTABLE_DEFAULT_SIZE (default 16) decides the default size of the hashtable
+// -> Table will resize up and down in powers of two automatically
+// -> Note, must be a power of 2
+
 typedef struct Hashtable Hashtable;
 
 // Creates a hashtable with the specified functionality
@@ -31,9 +40,6 @@ void* hashtable_find(Hashtable* hashtable, void* key);
 // Removes and returns an item from a hashtable
 void* hashtable_remove(Hashtable* hashtable, void* key);
 
-// Prints the hash table to a file descriptor, use for debug purposes
-void hashtable_print(Hashtable* hashtable, FILE* fp);
-
 // Removes and returns the first element in the hashtable
 // Returns NUL when table is empty
 // Can be used to clear free the stored data before hashtable_destroy
@@ -43,13 +49,23 @@ void* hashtable_pop(Hashtable* hashtable);
 // Does not free the stored data
 void hashtable_destroy(Hashtable* hashtable);
 
+// Prints the hash table to a file descriptor, use for debug purposes
+void hashtable_print(Hashtable* hashtable, FILE* fp);
+
 unsigned int hashtable_hashfunc_string(void* pkey);
 int hashtable_comp_string(void* pkey1, void* pkey2);
 
 #ifdef HASHTABLE_IMPLEMENTATION
 
 #ifndef HASHTABLE_DEFAULT_SIZE
-#define HASHTABLE_DEFAULT_SIZE 16
+#define HASHTABLE_DEFAULT_SIZE 8
+#endif
+#if HASHTABLE != 0 && HASHTABLE_SIZE_TOLERANCE < 50
+#define HASHTABLE_SIZE_TOLERANCE 50
+#endif
+
+#ifndef HASHTABLE_SIZE_TOLERANCE
+#define HASHTABLE_SIZE_TOLERANCE 70
 #endif
 
 #include <stdint.h>
@@ -68,7 +84,11 @@ struct Hashtable
 {
 	unsigned int (*hashfunc)(void*);
 	int (*compfunc)(void*, void*);
+
+	// The amount of buckets in the list
 	unsigned int size;
+
+	// How many items are in the table, including
 	unsigned int count;
 	struct Hashtable_item** items;
 };
@@ -89,16 +109,17 @@ Hashtable* hashtable_create_string()
 	return hashtable_create(hashtable_hashfunc_string, hashtable_comp_string);
 }
 
-void* hashtable_insert(Hashtable* hashtable, void* key, void* data)
+// Inserts an already allocated item struct into the hash table
+// Does not resize the hash table
+// Does no increase count
+static void* hashtable_insert_internal(Hashtable* hashtable, struct Hashtable_item* item)
 {
-	unsigned int index = hashtable->hashfunc(key);
+	// Discard the next since collision chain will be reevaluated
+	item->next = NULL;
+	// Calculate the hash with the provided hash function to determine index
+	unsigned int index = hashtable->hashfunc(item->key);
 	// Make sure hash fits inside table
 	index = index & (hashtable->size - 1);
-	struct Hashtable_item* item = malloc(sizeof(struct Hashtable_item));
-	item->key = key;
-	item->data = data;
-	item->next = NULL;
-
 	// Slot is empty, no collision
 	struct Hashtable_item* cur = hashtable->items[index];
 	if (cur == NULL)
@@ -113,7 +134,7 @@ void* hashtable_insert(Hashtable* hashtable, void* key, void* data)
 		while (cur)
 		{
 			// Duplicate
-			if (hashtable->compfunc(cur->key, key) == 0)
+			if (hashtable->compfunc(cur->key, item->key) == 0)
 			{
 				// Handle beginning
 				if (prev == NULL)
@@ -134,6 +155,56 @@ void* hashtable_insert(Hashtable* hashtable, void* key, void* data)
 		prev->next = item;
 	}
 	return NULL;
+}
+
+// Resizes the list either up (1) or down (-1)
+// Internal function
+static void hashtable_resize(Hashtable* hashtable, int direction)
+{
+	// Save the old values
+	unsigned int old_size = hashtable->size;
+	struct Hashtable_item** old_items = hashtable->items;
+
+	if (direction == 1)
+		hashtable->size = hashtable->size << 1;
+	else if (direction == -1)
+		hashtable->size = hashtable->size >> 1;
+	else
+		return;
+
+	// Allocate the larger list
+	hashtable->items = calloc(hashtable->size, sizeof(struct Hashtable_item*));
+
+	for (unsigned int i = 0; i < old_size; i++)
+	{
+		struct Hashtable_item* cur = old_items[i];
+		struct Hashtable_item* next = NULL;
+		while (cur)
+		{
+			// Save the next since it will be changed with insert
+			next = cur->next;
+
+			// Reinsert into the new list
+			// This won't resize the table again
+			hashtable_insert_internal(hashtable, cur);
+
+			cur = next;
+		}
+	}
+	free(old_items);
+}
+
+void* hashtable_insert(Hashtable* hashtable, void* key, void* data)
+{
+	// Check if table needs to be resized before calculating the hash as it will change
+	if (++hashtable->count * 100 >= hashtable->size * HASHTABLE_SIZE_TOLERANCE)
+		hashtable_resize(hashtable, 1);
+
+	struct Hashtable_item* item = malloc(sizeof(struct Hashtable_item));
+	item->key = key;
+	item->data = data;
+	item->next = NULL;
+	return hashtable_insert_internal(hashtable, item);
 }
 
 void* hashtable_find(Hashtable* hashtable, void* key)
@@ -161,6 +232,7 @@ void* hashtable_remove(Hashtable* hashtable, void* key)
 	unsigned int index = hashtable->hashfunc(key);
 	// Make sure hash fits inside table
 	index = index & (hashtable->size - 1);
+
 	struct Hashtable_item* cur = hashtable->items[index];
 	struct Hashtable_item* prev = NULL;
 
@@ -177,6 +249,11 @@ void* hashtable_remove(Hashtable* hashtable, void* key)
 
 			void* cur_data = cur->data;
 			free(cur);
+
+			// Check if table needs to be resized down after removing item
+			if (--hashtable->count * 100 < hashtable->size * (100 - HASHTABLE_SIZE_TOLERANCE))
+				hashtable_resize(hashtable, -1);
+
 			return cur_data;
 		}
 		prev = cur;
@@ -185,12 +262,51 @@ void* hashtable_remove(Hashtable* hashtable, void* key)
 	return NULL;
 }
 
-void hashtable_print(Hashtable* hashtable, FILE* fp)
+void* hashtable_pop(Hashtable* hashtable)
 {
-	struct Hashtable_item* cur = NULL;
 	for (unsigned int i = 0; i < hashtable->size; i++)
 	{
-		cur = hashtable->items[i];
+		struct Hashtable_item* cur = hashtable->items[i];
+		if (cur != NULL)
+		{
+			hashtable->items[i] = cur->next;
+			void* cur_data = cur->data;
+			free(cur);
+
+			// Check if table needs to be resized down after removing item
+			if (--hashtable->count * 100 <= hashtable->size * (100 - HASHTABLE_SIZE_TOLERANCE))
+				hashtable_resize(hashtable, -1);
+
+			return cur_data;
+		}
+	}
+
+	return NULL;
+}
+
+void hashtable_destroy(Hashtable* hashtable)
+{
+	for (unsigned int i = 0; i < hashtable->size; i++)
+	{
+		struct Hashtable_item* cur = hashtable->items[i];
+		struct Hashtable_item* next = NULL;
+		while (cur)
+		{
+			next = cur->next;
+			free(cur);
+			cur = next;
+		}
+	}
+	free(hashtable->items);
+	free(hashtable);
+}
+
+// Debug function
+void hashtable_print(Hashtable* hashtable, FILE* fp)
+{
+	for (unsigned int i = 0; i < hashtable->size; i++)
+	{
+		struct Hashtable_item* cur = hashtable->items[i];
 		if (cur == NULL)
 			fprintf(fp, "[%.4u]: ---------", i);
 		else
@@ -203,41 +319,6 @@ void hashtable_print(Hashtable* hashtable, FILE* fp)
 		}
 		fprintf(fp, "\n");
 	}
-}
-
-void* hashtable_pop(Hashtable* hashtable)
-{
-	struct Hashtable_item* cur = NULL;
-	for (unsigned int i = 0; i < hashtable->size; i++)
-	{
-		cur = hashtable->items[i];
-		if (cur != NULL)
-		{
-			hashtable->items[i] = cur->next;
-			void* cur_data = cur->data;
-			free(cur);
-			return cur_data;
-		}
-	}
-	return NULL;
-}
-
-void hashtable_destroy(Hashtable* hashtable)
-{
-	struct Hashtable_item* cur = NULL;
-	struct Hashtable_item* next = NULL;
-	for (unsigned int i = 0; i < hashtable->size; i++)
-	{
-		cur = hashtable->items[i];
-		while (cur)
-		{
-			next = cur->next;
-			free(cur);
-			cur = next;
-		}
-	}
-	free(hashtable->items);
-	free(hashtable);
 }
 
 // Common Hash functions

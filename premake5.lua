@@ -1,6 +1,12 @@
 workspace "singlelibs"
 	configurations { "debug", "release" }
 
+
+newoption {
+	trigger = "notest",
+	description = "Autoruns the test after successful build"
+}
+
 project "test"
 	kind "ConsoleApp"
 	language "C"
@@ -20,6 +26,6 @@ project "test"
 		optimize "on"
 		
 	-- Run test
-	filter {}	
+	configuration "not notest"
 		postbuildcommands "./bin/test"
 

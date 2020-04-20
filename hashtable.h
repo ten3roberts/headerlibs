@@ -34,6 +34,11 @@ void* hashtable_remove(Hashtable* hashtable, void* key);
 // Prints the hash table to a file descriptor, use for debug purposes
 void hashtable_print(Hashtable* hashtable, FILE* fp);
 
+// Removes and returns the first element in the hashtable
+// Returns NUL when table is empty
+// Can be used to clear free the stored data before hashtable_destroy
+void* hashtable_pop(Hashtable* hashtable);
+
 // Destroys and frees a hashtable
 // Does not free the stored data
 void hashtable_destroy(Hashtable* hashtable);
@@ -170,8 +175,9 @@ void* hashtable_remove(Hashtable* hashtable, void* key)
 			else
 				prev->next = cur->next;
 
+			void* cur_data = cur->data;
 			free(cur);
-			return cur->data;
+			return cur_data;
 		}
 		prev = cur;
 		cur = cur->next;
@@ -197,6 +203,23 @@ void hashtable_print(Hashtable* hashtable, FILE* fp)
 		}
 		fprintf(fp, "\n");
 	}
+}
+
+void* hashtable_pop(Hashtable* hashtable)
+{
+	struct Hashtable_item* cur = NULL;
+	for (unsigned int i = 0; i < hashtable->size; i++)
+	{
+		cur = hashtable->items[i];
+		if (cur != NULL)
+		{
+			hashtable->items[i] = cur->next;
+			void* cur_data = cur->data;
+			free(cur);
+			return cur_data;
+		}
+	}
+	return NULL;
 }
 
 void hashtable_destroy(Hashtable* hashtable)

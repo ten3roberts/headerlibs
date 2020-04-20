@@ -4,6 +4,10 @@
 #define HASHTABLE_IMPLEMENTATION
 #include "hashtable.h"
 #include <stdio.h>
+#include <stdlib.h>
+
+char* names[] = {"Aletha", "Karma",	  "Cliff", "Adelle",  "Andra",	 "Kenny", "Masako", "Beatrice", "Irina",  "Tressa",
+				 "Cuc",	   "Carleen", "Tamie", "Stanley", "Ladonna", "Suzan", "Lauryn", "Rogelio",	"Elaine", "Shayna"};
 
 struct Person
 {
@@ -13,24 +17,35 @@ struct Person
 
 int main()
 {
-	struct Person people[] = {{.name = "Adam", .age = 17},
-							  {.name = "Bert", .age = 14},
-							  {.name = "Cecilia", .age = 16},
-							  {.name = "David", .age = 18}};
-
 	Hashtable* table = hashtable_create_string();
-	for (int i = 0; i < sizeof people / sizeof *people; i++)
+
+	// Generate people
+	for (int i = 0; i < 20; i++)
 	{
-		hashtable_insert(table, people[i].name, &people[i]);
+		struct Person* p = malloc(sizeof(struct Person));
+		char* name = names[rand() % (sizeof names / sizeof *names)];
+		memcpy(p->name, name, sizeof(p->name));
+		int lname = strlen(name);
+		lname = lname > sizeof p->name ? sizeof p->name : lname;
+		p->name[lname] = '\0';
+		free(hashtable_insert(table, p->name, p));
+		
+		
 	}
 
 	hashtable_print(table, stdout);
-
+	free(hashtable_remove(table, "Aletha"));
 	struct Person* p = hashtable_find(table, "Adam");
 	if (p)
 		printf("%s is %d years old\n", p->name, p->age);
 	else
 		printf("Could not locate person\n");
+
+	struct Person* pfree = NULL;
+	while ((pfree = hashtable_pop(table)))
+		free(pfree);
+
+	hashtable_print(table, stdout);
 	hashtable_destroy(table);
 	mp_terminate();
 }

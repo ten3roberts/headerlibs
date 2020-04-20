@@ -14,8 +14,12 @@ project "test"
 	filter "configurations:debug"
 		symbols "on"
 		optimize "off"
-
+		
 	filter "configurations:release"
 		symbols "off"
 		optimize "on"
+		
+	-- Run test
+	filter {}	
+		postbuildcommands "./bin/test"
 

@@ -1,7 +1,7 @@
 # Headerlibs
 A collection of single file libaries for C
 
-All libraries are entirely self sustaining and do not require any other files than the C standard library
+All libraries are entirely self contained and do not require any other files than the C standard library
 
 All library files contain their own copy of the MIT license
 
@@ -9,7 +9,7 @@ Mix and match as you please
 
 Library | Description
 ------------------------------- | -----
-**[hashtable](hashtable.h)** 	| A dynamic hashtable supporting custom key and value types. Common types have predefined hash functions and constructors
+**[hashtable](hashtable.h)** 	| A dynamic hashtable supporting arbitrary key and value types. Common types have predefined hash functions and constructors
 **[magpie](magpie.h)** 			| A small and low overhead library for keeping track of allocations and detecting memory leaks from my repo [https://github.com/ten3roberts/magpie](https://github.com/ten3roberts/magpie)
 
 ## General documentation

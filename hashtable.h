@@ -17,6 +17,31 @@
 // -> Table will resize up and down in powers of two automatically
 // -> Note, must be a power of 2
 
+// Basic usage
+// Hashtable storing arbitrary type with string keys
+// Hashtable* table = hashtable_create_string();
+
+// Adding data to the hashtable
+// hashtable_insert(table, "Testkey", &mystruct)
+// If an entry of that name already exists, it is replaced and returned
+
+// The table only stores a pointer to the key and data stored
+// This means that when an entry is removed, it's value and key is not freed
+// This means that the data and key can be stack allocated if kept in scope
+// Keys can also be literals like "ABC"
+
+// If you want to dynamically allocate a string as key, it is recommended to store it withing the struct
+// hashtable_insert(table, mystruct.name, &mystruct)
+// This also makes insertion of structs easy if they store a name or similar identifier withing them
+
+// Custom key types
+// To create a hashtable with a custom type of key you need to create a hashfunction and a comparefunction
+// The hashfunction takes in a void* of the key and returns a uint32_t as a hash, the more spread the hashfunction is, the better
+// The compare function takes a void* of the key and returns 0 if they match
+
+// To then create the hashtable with your custom functions, use hashtable_create(hashfunc, compfunc)
+// Usage is exactly like a hashtable storing strings or any other type
+
 // See end of file for license
 
 typedef struct Hashtable Hashtable;
@@ -25,7 +50,7 @@ typedef struct Hashtable Hashtable;
 // hashfunc should be the function that generates a hash from the key
 // compfunc compares two keys and returns 0 on match
 // Note, the key pointer should be valid as long as it is in the map
-Hashtable* hashtable_create(unsigned int (*hashfunc)(void*), int (*compfunc)(void*, void*));
+Hashtable* hashtable_create(uint32_t (*hashfunc)(void*), int32_t (*compfunc)(void*, void*));
 
 // Creates a hashtable with the string hash function
 // Shorthand for hashtable_create(hashtable_hashfunc_string, hashtable_comp_string);
@@ -54,8 +79,8 @@ void hashtable_destroy(Hashtable* hashtable);
 // Prints the hash table to a file descriptor, use for debug purposes
 void hashtable_print(Hashtable* hashtable, FILE* fp);
 
-unsigned int hashtable_hashfunc_string(void* pkey);
-int hashtable_comp_string(void* pkey1, void* pkey2);
+uint32_t hashtable_hashfunc_string(void* pkey);
+int32_t hashtable_comp_string(void* pkey1, void* pkey2);
 
 #ifdef HASHTABLE_IMPLEMENTATION
 
@@ -84,18 +109,18 @@ struct Hashtable_item
 
 struct Hashtable
 {
-	unsigned int (*hashfunc)(void*);
-	int (*compfunc)(void*, void*);
+	uint32_t (*hashfunc)(void*);
+	int32_t (*compfunc)(void*, void*);
 
 	// The amount of buckets in the list
-	unsigned int size;
+	uint32_t size;
 
 	// How many items are in the table, including
-	unsigned int count;
+	uint32_t count;
 	struct Hashtable_item** items;
 };
 
-Hashtable* hashtable_create(unsigned int (*hashfunc)(void*), int (*compfunc)(void*, void*))
+Hashtable* hashtable_create(uint32_t (*hashfunc)(void*), int32_t (*compfunc)(void*, void*))
 {
 	Hashtable* hashtable = malloc(sizeof(Hashtable));
 	hashtable->hashfunc = hashfunc;
@@ -119,7 +144,7 @@ static void* hashtable_insert_internal(Hashtable* hashtable, struct Hashtable_it
 	// Discard the next since collision chain will be reevaluated
 	item->next = NULL;
 	// Calculate the hash with the provided hash function to determine index
-	unsigned int index = hashtable->hashfunc(item->key);
+	uint32_t index = hashtable->hashfunc(item->key);
 	// Make sure hash fits inside table
 	index = index & (hashtable->size - 1);
 	// Slot is empty, no collision
@@ -161,10 +186,10 @@ static void* hashtable_insert_internal(Hashtable* hashtable, struct Hashtable_it
 
 // Resizes the list either up (1) or down (-1)
 // Internal function
-static void hashtable_resize(Hashtable* hashtable, int direction)
+static void hashtable_resize(Hashtable* hashtable, int32_t direction)
 {
 	// Save the old values
-	unsigned int old_size = hashtable->size;
+	uint32_t old_size = hashtable->size;
 	struct Hashtable_item** old_items = hashtable->items;
 
 	if (direction == 1)
@@ -177,7 +202,7 @@ static void hashtable_resize(Hashtable* hashtable, int direction)
 	// Allocate the larger list
 	hashtable->items = calloc(hashtable->size, sizeof(struct Hashtable_item*));
 
-	for (unsigned int i = 0; i < old_size; i++)
+	for (uint32_t i = 0; i < old_size; i++)
 	{
 		struct Hashtable_item* cur = old_items[i];
 		struct Hashtable_item* next = NULL;
@@ -211,7 +236,7 @@ void* hashtable_insert(Hashtable* hashtable, void* key, void* data)
 
 void* hashtable_find(Hashtable* hashtable, void* key)
 {
-	unsigned int index = hashtable->hashfunc(key);
+	uint32_t index = hashtable->hashfunc(key);
 	// Make sure hash fits inside table
 	index = index & (hashtable->size - 1);
 	struct Hashtable_item* cur = hashtable->items[index];
@@ -231,7 +256,7 @@ void* hashtable_find(Hashtable* hashtable, void* key)
 // Removes and returns an item from a hashtable
 void* hashtable_remove(Hashtable* hashtable, void* key)
 {
-	unsigned int index = hashtable->hashfunc(key);
+	uint32_t index = hashtable->hashfunc(key);
 	// Make sure hash fits inside table
 	index = index & (hashtable->size - 1);
 
@@ -266,7 +291,7 @@ void* hashtable_remove(Hashtable* hashtable, void* key)
 
 void* hashtable_pop(Hashtable* hashtable)
 {
-	for (unsigned int i = 0; i < hashtable->size; i++)
+	for (uint32_t i = 0; i < hashtable->size; i++)
 	{
 		struct Hashtable_item* cur = hashtable->items[i];
 		if (cur != NULL)
@@ -288,7 +313,7 @@ void* hashtable_pop(Hashtable* hashtable)
 
 void hashtable_destroy(Hashtable* hashtable)
 {
-	for (unsigned int i = 0; i < hashtable->size; i++)
+	for (uint32_t i = 0; i < hashtable->size; i++)
 	{
 		struct Hashtable_item* cur = hashtable->items[i];
 		struct Hashtable_item* next = NULL;
@@ -306,7 +331,7 @@ void hashtable_destroy(Hashtable* hashtable)
 // Debug function
 void hashtable_print(Hashtable* hashtable, FILE* fp)
 {
-	for (unsigned int i = 0; i < hashtable->size; i++)
+	for (uint32_t i = 0; i < hashtable->size; i++)
 	{
 		struct Hashtable_item* cur = hashtable->items[i];
 		if (cur == NULL)
@@ -324,7 +349,7 @@ void hashtable_print(Hashtable* hashtable, FILE* fp)
 }
 
 // Common Hash functions
-unsigned int hashtable_hashfunc_string(void* pkey)
+uint32_t hashtable_hashfunc_string(void* pkey)
 {
 	char* key = (char*)pkey;
 	uint64_t value = 0;
@@ -338,7 +363,7 @@ unsigned int hashtable_hashfunc_string(void* pkey)
 	return value;
 }
 
-int hashtable_comp_string(void* pkey1, void* pkey2)
+int32_t hashtable_comp_string(void* pkey1, void* pkey2)
 {
 	return strcmp(pkey1, pkey2);
 }

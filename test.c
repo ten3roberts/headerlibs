@@ -11,7 +11,8 @@
 #include <stdlib.h>
 #include <assert.h>
 
-char* names[] = {"Aletha", "Bert", "Ceasar", "David", "Elize", "Felix", "George", "Heather", "Ingrid", "Josephine", "Katherine"};
+char* names[] = {"Aletha", "Bert",	  "Ceasar", "David",	 "Elize",	 "Felix",
+				 "George", "Heather", "Ingrid", "Josephine", "Katherine"};
 
 struct Person
 {
@@ -63,9 +64,9 @@ int test_hashtable()
 	return 0;
 }
 
-int test_mempool()
+int test_mempool(int pool_size)
 {
-	mempool_t* pool = mempool_create(sizeof(struct Person), 16);
+	mempool_t* pool = mempool_create(sizeof(struct Person), pool_size);
 	struct Person* people[lenof(names)];
 	for (uint32_t i = 0; i < lenof(names); i++)
 	{
@@ -76,9 +77,9 @@ int test_mempool()
 	}
 
 	// Print the people
-	for(uint32_t i = 0; i < lenof(names); i++)
+	for (uint32_t i = 0; i < lenof(names); i++)
 	{
-		printf("[%4u]: name: %s, age:%d\n", i, people[i]->name, people[i]->age);
+		printf("[%4u]: name: %s, age: %d\n", i, people[i]->name, people[i]->age);
 	}
 	mempool_destroy(pool);
 	return 0;
@@ -86,8 +87,19 @@ int test_mempool()
 
 int main()
 {
-	//test_hashtable();
-	test_mempool();
+	if (test_hashtable())
+	{
+		printf("Hash table test failed\n");
+		return -1;
+	}
+	test_mempool(2);
+	test_mempool(8);
+	test_mempool(32);
 	mp_print_locations();
+	if (mp_get_count() > 0)
+	{
+		printf("Memory leaked!\n");
+		return -10;
+	}
 	mp_terminate();
 }

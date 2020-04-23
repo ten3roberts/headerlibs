@@ -20,7 +20,7 @@ typedef struct mempool_t mempool_t;
 
 // Creates a memory pool that can allocate block_size amounts of memory
 // element_size describes how large every allocation will be in bytes
-// element_count describes how many elements the pool can be allocated before mallocing a new block of the same size
+// element_count describes how many elements each block can store before the pool allocates a new one
 // -> A higher value may uses more memory that is unused if allocations aren't filled but results in less fragmented memory and fewer allocations
 mempool_t* mempool_create(uint32_t element_size, uint32_t element_count);
 
@@ -28,7 +28,7 @@ mempool_t* mempool_create(uint32_t element_size, uint32_t element_count);
 // Either tries to fill a freed spot, take at the end of a block, or malloc a new block
 void* mempool_alloc(mempool_t* pool);
 
-void mempool_free(mempool_t* pool, void* elem);
+void mempool_free(mempool_t* pool, void* element);
 
 // Destroys and frees everything in the pool
 void mempool_destroy(mempool_t* pool);
@@ -50,6 +50,13 @@ void mempool_destroy(mempool_t* pool);
 #ifndef MEMPOOL_MESSAGE
 #define MEMPOOL_MESSAGE(s) fputs(s, stderr)
 #endif
+
+struct mempool_free
+{
+	// The adress for the freed element is the address of this struct
+	struct mempool_free* next;
+};
+
 struct mempool_t
 {
 	// The size of each individual elemen
@@ -66,23 +73,33 @@ struct mempool_t
 	uint32_t block_end;
 	// A list of fixed size buffers
 	uint8_t** blocks;
+	// A pointer to all free elements
+	struct mempool_free* free_elements;
 };
 
 mempool_t* mempool_create(uint32_t element_size, uint32_t element_count)
 {
 	mempool_t* pool = MEMPOOL_MALLOC(sizeof(mempool_t));
-	pool->element_size = element_size;
-	pool->block_size = element_size * element_count;
-
+	// Clamp the size so that a free element descriptor can fit
+	pool->element_size = element_size < sizeof(struct mempool_free) ? sizeof(struct mempool_free) : element_size;
+	pool->block_size = pool->element_size * element_count;
 	pool->block_count = 0;
 	pool->blocks = NULL;
+	pool->free_elements = NULL;
 }
 
 // Returnes an element_size chunk of memory from the pool
 // Either tries to fill a freed spot, take at the end of a block, or malloc a new block
 void* mempool_alloc(mempool_t* pool)
 {
-	// TODO: freed blocks
+	// First check for freed blocks
+	if(pool->free_elements)
+	{
+		void* p = pool->free_elements;
+		pool->free_elements = pool->free_elements->next;
+		return p;
+	}
+
 	// Last pool is full, malloc a new one
 	// No pools have yet been allocated
 	if (pool->block_end == pool->block_size || pool->block_count == 0)
@@ -98,7 +115,6 @@ void* mempool_alloc(mempool_t* pool)
 			return NULL;
 		}
 		pool->blocks = tmp;
-
 		// Allocate the block
 		pool->blocks[pool->block_count - 1] = malloc(pool->block_size);
 		// Start at the beginning of new pool
@@ -112,21 +128,30 @@ void* mempool_alloc(mempool_t* pool)
 
 	// Get the pointer to the beginning of the free space in the last block
 	void* p = pool->blocks[pool->block_count - 1] + pool->block_end;
+
+	// Update end 'pointers'
 	pool->block_end += pool->element_size;
+
 	return p;
 }
 
-void mempool_free(mempool_t* pool, void* elem);
+void mempool_free(mempool_t* pool, void* element)
+{
+	// Make the free struct fill the freed element
+	struct mempool_free* freed = element;
+	freed->next = pool->free_elements;
+	pool->free_elements = freed;
+}
 
 // Destroys and frees everything in the pool
 void mempool_destroy(mempool_t* pool)
 {
 	for (uint32_t i = 0; i < pool->block_count; i++)
 	{
-		free(pool->blocks[i]);
+		MEMPOOL_FREE(pool->blocks[i]);
 	}
-	free(pool->blocks);
-	free(pool);
+	MEMPOOL_FREE(pool->blocks);
+	MEMPOOL_FREE(pool);
 }
 
 #endif

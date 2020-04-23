@@ -14,7 +14,8 @@ project "test"
 
 	files { 
 		"test.c",
-		"hashtable.h"
+		"hashtable.h",
+		"mempool.h"
 	}
 
 	filter "configurations:debug"

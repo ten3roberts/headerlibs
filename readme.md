@@ -11,6 +11,7 @@ Library | Description
 ------------------------------- | -----
 **[hashtable](hashtable.h)** 	| A dynamic hashtable supporting arbitrary key and value types. Common types have predefined hash functions and constructors
 **[magpie](magpie.h)** 			| A small and low overhead library for keeping track of allocations and detecting memory leaks from my repo [https://github.com/ten3roberts/magpie](https://github.com/ten3roberts/magpie)
+**[mempool](mempool.h)** 		| A memory pool for reducing memory allocations for equally sized blocks
 
 ## General documentation
 

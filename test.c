@@ -3,11 +3,15 @@
 #include "magpie.h"
 #define HASHTABLE_IMPLEMENTATION
 #include "hashtable.h"
+
+#define MEMPOOL_IMPLEMENTATION
+#include "mempool.h"
+
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 
-char* names[] = {"Aletha", "Karma",	  "Cliff", "Adelle",  "Andrea",	 "Kenny", "Masako", "Beatrice", "Irina",  "Tressa",
-				 "Ceasar", "Carleen", "Tamie", "Stanley", "Ladonna", "Suzan", "Laura",	"Roger",	"Elaine", "Shayna"};
+char* names[] = {"Aletha", "Bert", "Ceasar", "David", "Elize", "Felix", "George", "Heather", "Ingrid", "Josephine", "Katherine"};
 
 struct Person
 {
@@ -15,9 +19,12 @@ struct Person
 	int age;
 };
 
-int main()
+#define lenof(arr) (sizeof(arr) / sizeof(*arr))
+
+int test_hashtable()
 {
 	Hashtable* table = hashtable_create_string();
+	assert(table != NULL);
 
 	// Generate random people
 	for (int i = 0; i < sizeof names / sizeof *names; i++)
@@ -35,9 +42,14 @@ int main()
 	hashtable_print(table, stdout);
 	struct Person* p = hashtable_find(table, "Aletha");
 	if (p)
+	{
 		printf("%s is %d years old\n", p->name, p->age);
+	}
 	else
+	{
 		printf("Could not locate person\n");
+		return -1;
+	}
 
 	struct Person* pfree = NULL;
 	while ((pfree = hashtable_pop(table)))
@@ -48,5 +60,34 @@ int main()
 	hashtable_print(table, stdout);
 
 	hashtable_destroy(table);
+	return 0;
+}
+
+int test_mempool()
+{
+	mempool_t* pool = mempool_create(sizeof(struct Person), 16);
+	struct Person* people[lenof(names)];
+	for (uint32_t i = 0; i < lenof(names); i++)
+	{
+		people[i] = mempool_alloc(pool);
+		assert(people[i] != NULL);
+		people[i]->age = i;
+		snprintf(people[i]->name, sizeof(people[i]->name), "%s", names[i]);
+	}
+
+	// Print the people
+	for(uint32_t i = 0; i < lenof(names); i++)
+	{
+		printf("[%4u]: name: %s, age:%d\n", i, people[i]->name, people[i]->age);
+	}
+	mempool_destroy(pool);
+	return 0;
+}
+
+int main()
+{
+	//test_hashtable();
+	test_mempool();
+	mp_print_locations();
 	mp_terminate();
 }

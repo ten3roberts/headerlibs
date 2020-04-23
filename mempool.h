@@ -15,7 +15,7 @@
 #ifndef MEMPOOL_H
 #define MEMPOOL_H
 
-typedef struct Mempool Mempool;
+typedef struct mempool_t Mempool;
 typedef struct mempool_t mempool_t;
 
 // Creates a memory pool that can allocate block_size amounts of memory

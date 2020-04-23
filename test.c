@@ -66,7 +66,7 @@ int test_hashtable()
 
 int test_mempool(int pool_size)
 {
-	mempool_t* pool = mempool_create(sizeof(struct Person), pool_size);
+	Mempool* pool = mempool_create(sizeof(struct Person), pool_size);
 	struct Person* people[lenof(names)];
 	for (uint32_t i = 0; i < lenof(names); i++)
 	{

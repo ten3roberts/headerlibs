@@ -86,6 +86,7 @@ mempool_t* mempool_create(uint32_t element_size, uint32_t element_count)
 	pool->block_count = 0;
 	pool->blocks = NULL;
 	pool->free_elements = NULL;
+	return pool;
 }
 
 // Returnes an element_size chunk of memory from the pool

@@ -342,7 +342,7 @@ void hashtable_print(hashtable_t* hashtable, FILE* fp)
 
 		while (cur)
 		{
-			fprintf(fp, "%p: \"%.10s\"; ", cur->key, cur->key);
+			fprintf(fp, "%p: \"%.10s\"; ", cur->key, (char*)cur->key);
 			cur = cur->next;
 		}
 		fprintf(fp, "\n");

@@ -73,6 +73,9 @@ void* hashtable_remove(hashtable_t* hashtable, void* key);
 // Can be used to clear free the stored data before hashtable_destroy
 void* hashtable_pop(hashtable_t* hashtable);
 
+// Returns how many items are in the hashtable
+uint32_t hashtable_get_count(hashtable_t* hashtable);
+
 // Destroys and frees a hashtable
 // Does not free the stored data
 void hashtable_destroy(hashtable_t* hashtable);
@@ -310,6 +313,11 @@ void* hashtable_pop(hashtable_t* hashtable)
 	}
 
 	return NULL;
+}
+
+uint32_t hashtable_get_count(hashtable_t* hashtable)
+{
+	return hashtable->count;
 }
 
 void hashtable_destroy(hashtable_t* hashtable)

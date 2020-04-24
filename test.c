@@ -7,6 +7,9 @@
 #define MEMPOOL_IMPLEMENTATION
 #include "mempool.h"
 
+#define LIBJSON_IMPLEMENTATION
+#include "libjson.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -85,6 +88,21 @@ int test_mempool(int pool_size)
 	return 0;
 }
 
+int test_json()
+{
+	JSON* root = json_loadfile("./example.json");
+
+	json_destroy(json_pop_member(root, "age"));
+	json_add_member(root, "name", json_create_string("Jacob"));
+	printf("Name = %s\n", json_get_string(json_get_member(root, "name")));
+	json_destroy(json_pop_member(root, "name"));
+
+	json_writefile(root, "out.json", JSON_FORMAT);
+
+	json_destroy(root);
+	mp_terminate();
+}
+
 int main()
 {
 	if (test_hashtable())
@@ -95,6 +113,8 @@ int main()
 	test_mempool(2);
 	test_mempool(8);
 	test_mempool(32);
+
+	test_json();
 	mp_print_locations();
 	if (mp_get_count() > 0)
 	{

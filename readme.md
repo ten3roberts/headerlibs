@@ -5,14 +5,14 @@ All libraries are entirely self contained and do not require any other files tha
 
 All library files contain their own copy of the MIT license
 
-Mix and match as you please
+You can copy single files from this repository and intergate into your own project without keeping the other files
 
 Library | Description
 ------------------------------- | -----
 **[hashtable](hashtable.h)** 	| A dynamic hashtable supporting arbitrary key and value types. Common types have predefined hash functions and constructors
-**[magpie](magpie.h)** 			| A small and low overhead library for keeping track of allocations and detecting memory leaks from my repo [https://github.com/ten3roberts/magpie](https://github.com/ten3roberts/magpie)
 **[mempool](mempool.h)** 		| A memory pool for reducing memory allocations for equally sized blocks
-
+**[magpie](magpie.h)** 			| A small and low overhead library for keeping track of allocations and detecting memory leaks. From my repo [github.com/ten3roberts/magpie](https://github.com/ten3roberts/magpie)
+**[libjson](libjson.h)**		| A json library for parsing and creating json files. From my repo [github.com/ten3roberts/libjson](https://github.com/ten3roberts/libjson)
 ## General documentation
 
 Documentation for the specific libraries can be found withing their header file

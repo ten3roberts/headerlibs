@@ -3,3 +3,4 @@ obj/
 .vscode/
 Makefile
 *.make
+out.json

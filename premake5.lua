@@ -18,6 +18,8 @@ project "test"
 		"mempool.h"
 	}
 
+	links "m"
+
 	filter "configurations:debug"
 		symbols "on"
 		optimize "off"

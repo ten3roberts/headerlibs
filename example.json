@@ -1,0 +1,21 @@
+{
+	"name": "Adam",
+	"hunger": 1.43,
+	"balance": 0.05,
+	"age": 0.40559,
+	"friends": [
+		{
+			"age": 1.6e6,
+			"name": "Be rt"
+		},
+		{
+			"age": 17,
+			"name": "Ceas\far"
+		}
+	],
+	"lover": {
+		"name": "Eli\bze",
+		"age": 18
+	},
+	"house": null
+}

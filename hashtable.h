@@ -52,7 +52,7 @@ typedef struct hashtable_t hashtable_t;
 // hashfunc should be the function that generates a hash from the key
 // compfunc compares two keys and returns 0 on match
 // Note, the key pointer should be valid as long as it is in the map
-hashtable_t* hashtable_create(uint32_t (*hashfunc)(void*), int32_t (*compfunc)(void*, void*));
+hashtable_t* hashtable_create(uint32_t (*hashfunc)(const void*), int32_t (*compfunc)(const void*, const void*));
 
 // Creates a hashtable with the string hash function
 // Shorthand for hashtable_create(hashtable_hashfunc_string, hashtable_comp_string);
@@ -60,14 +60,14 @@ hashtable_t* hashtable_create_string();
 
 // Inserts an item associated with a key into the hashtable
 // If key already exists, it is returned and replaced
-void* hashtable_insert(hashtable_t* hashtable, void* key, void* data);
+void* hashtable_insert(hashtable_t* hashtable, const void* key, void* data);
 
 // Finds and returns an item from the hashtable
 // Returns NULL if failure
-void* hashtable_find(hashtable_t* hashtable, void* key);
+void* hashtable_find(hashtable_t* hashtable, const void* key);
 
 // Removes and returns an item from a hashtable
-void* hashtable_remove(hashtable_t* hashtable, void* key);
+void* hashtable_remove(hashtable_t* hashtable, const void* key);
 
 // Removes and returns the first element in the hashtable
 // Returns NUL when table is empty
@@ -84,8 +84,8 @@ void hashtable_destroy(hashtable_t* hashtable);
 // Prints the hash table to a file descriptor, use for debug purposes
 void hashtable_print(hashtable_t* hashtable, FILE* fp);
 
-uint32_t hashtable_hashfunc_string(void* pkey);
-int32_t hashtable_comp_string(void* pkey1, void* pkey2);
+uint32_t hashtable_hashfunc_string(const void* pkey);
+int32_t hashtable_comp_string(const void* pkey1, const void* pkey2);
 
 #ifdef HASHTABLE_IMPLEMENTATION
 
@@ -103,10 +103,11 @@ int32_t hashtable_comp_string(void* pkey1, void* pkey2);
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 struct hashtable_item
 {
-	void* key;
+	const void* key;
 	void* data;
 	// For collision chaining
 	struct hashtable_item* next;
@@ -114,8 +115,8 @@ struct hashtable_item
 
 struct hashtable_t
 {
-	uint32_t (*hashfunc)(void*);
-	int32_t (*compfunc)(void*, void*);
+	uint32_t (*hashfunc)(const void*);
+	int32_t (*compfunc)(const void*, const void*);
 
 	// The amount of buckets in the list
 	uint32_t size;
@@ -125,7 +126,7 @@ struct hashtable_t
 	struct hashtable_item** items;
 };
 
-hashtable_t* hashtable_create(uint32_t (*hashfunc)(void*), int32_t (*compfunc)(void*, void*))
+hashtable_t* hashtable_create(uint32_t (*hashfunc)(const void*), int32_t (*compfunc)(const void*, const void*))
 {
 	hashtable_t* hashtable = malloc(sizeof(hashtable_t));
 	hashtable->hashfunc = hashfunc;
@@ -226,7 +227,7 @@ static void hashtable_resize(hashtable_t* hashtable, int32_t direction)
 	free(old_items);
 }
 
-void* hashtable_insert(hashtable_t* hashtable, void* key, void* data)
+void* hashtable_insert(hashtable_t* hashtable, const void* key, void* data)
 {
 	// Check if table needs to be resized before calculating the hash as it will change
 	if (++hashtable->count * 100 >= hashtable->size * HASHTABLE_SIZE_TOLERANCE)
@@ -239,7 +240,7 @@ void* hashtable_insert(hashtable_t* hashtable, void* key, void* data)
 	return hashtable_insert_internal(hashtable, item);
 }
 
-void* hashtable_find(hashtable_t* hashtable, void* key)
+void* hashtable_find(hashtable_t* hashtable, const void* key)
 {
 	uint32_t index = hashtable->hashfunc(key);
 	// Make sure hash fits inside table
@@ -259,7 +260,7 @@ void* hashtable_find(hashtable_t* hashtable, void* key)
 }
 
 // Removes and returns an item from a hashtable
-void* hashtable_remove(hashtable_t* hashtable, void* key)
+void* hashtable_remove(hashtable_t* hashtable, const void* key)
 {
 	uint32_t index = hashtable->hashfunc(key);
 	// Make sure hash fits inside table
@@ -359,7 +360,7 @@ void hashtable_print(hashtable_t* hashtable, FILE* fp)
 }
 
 // Common Hash functions
-uint32_t hashtable_hashfunc_string(void* pkey)
+uint32_t hashtable_hashfunc_string(const void* pkey)
 {
 	char* key = (char*)pkey;
 	uint64_t value = 0;
@@ -373,7 +374,7 @@ uint32_t hashtable_hashfunc_string(void* pkey)
 	return value;
 }
 
-int32_t hashtable_comp_string(void* pkey1, void* pkey2)
+int32_t hashtable_comp_string(const void* pkey1, const void* pkey2)
 {
 	return strcmp(pkey1, pkey2);
 }

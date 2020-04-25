@@ -1,6 +1,7 @@
 #ifndef HASHTABLE_H
 #define HASHTABLE_H
 #include <stdint.h>
+#include <stdio.h>
 
 // Implement a simple dynamic hashtable in C
 // To build the library do

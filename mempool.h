@@ -30,6 +30,10 @@ void* mempool_alloc(mempool_t* pool);
 
 void mempool_free(mempool_t* pool, void* element);
 
+// Returns how many element are currently allocated
+// Pool can safely be destroyed if returned value is 0
+uint32_t mempool_get_count(mempool_t* pool);
+
 // Destroys and frees everything in the pool
 void mempool_destroy(mempool_t* pool);
 
@@ -64,9 +68,7 @@ struct mempool_t
 	// The size of each block in bytes (element_size * element_count)
 	uint32_t block_size;
 	uint32_t block_count;
-	// The index to the first block with available space
-	// If there is no space in
-	uint32_t block_avail;
+	uint32_t alloc_count;
 	// How much of the last pool that is used, e.g an index to the available bytes in the last block
 	// This excludes freed blocks
 	// In terms of bytes
@@ -86,6 +88,7 @@ mempool_t* mempool_create(uint32_t element_size, uint32_t element_count)
 	pool->block_count = 0;
 	pool->blocks = NULL;
 	pool->free_elements = NULL;
+	pool->alloc_count = 0;
 	return pool;
 }
 
@@ -94,10 +97,11 @@ mempool_t* mempool_create(uint32_t element_size, uint32_t element_count)
 void* mempool_alloc(mempool_t* pool)
 {
 	// First check for freed blocks
-	if(pool->free_elements)
+	if (pool->free_elements)
 	{
 		void* p = pool->free_elements;
 		pool->free_elements = pool->free_elements->next;
+		++pool->alloc_count;
 		return p;
 	}
 
@@ -132,16 +136,23 @@ void* mempool_alloc(mempool_t* pool)
 
 	// Update end 'pointers'
 	pool->block_end += pool->element_size;
+	++pool->alloc_count;
 
 	return p;
 }
 
 void mempool_free(mempool_t* pool, void* element)
 {
+	--pool->alloc_count;
 	// Make the free struct fill the freed element
 	struct mempool_free* freed = element;
 	freed->next = pool->free_elements;
 	pool->free_elements = freed;
+}
+
+uint32_t mempool_get_count(mempool_t* pool)
+{
+	return pool->alloc_count;
 }
 
 // Destroys and frees everything in the pool

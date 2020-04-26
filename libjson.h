@@ -1,23 +1,25 @@
 // Libjson is a small and easy to use library for parsing, reading, and generating json
-// 
-// To use libjson in your program copy the header into your project and include it whilst defining LIBJSON_IMPLEMENTATION in one C file to build it
-// 
+//
+// To use libjson in your program copy the header into your project and include it whilst defining
+// LIBJSON_IMPLEMENTATION in one C file to build it
+//
 // Example:
 // ```
 // #include <stdio.h>
 // #define LIBJSON_IMPLEMENTATION
 // #include "libjson.h"
-// 
+//
 // ...
 // ```
 // Libjson can be included several times, but only one C file can define LIBJSON_IMPLEMENTATION
-// 
+//
 // CONFIGURATION
-// Configuring of the library is done at build time by defining zero or more of below macros before the header include in the same file as MP_IMPLEMENTATION
-// 
+// Configuring of the library is done at build time by defining zero or more of below macros before the header include
+// in the same file as MP_IMPLEMENTATION
+//
 // JSON_MALLOC, JSON_REALLOC, and JSON_FREE to use your own allocators instead of the standard library
 // JSON_MESSAGE (default fputs(m, stderr)) to set your own message callback.
-// 
+//
 // ## Types
 // The library represents all json types with the JSON structure
 // The seven types are
@@ -30,23 +32,27 @@
 // 	JSON_TNULL
 //
 // The type can be checked by comparing the return value of json_get_type.
-// 
+//
 // ### Objects and Arrays
 // Objects are an unordered collection of name value pairs
-// 
+//
 // Arrays are an ordered collection of values
-// 
+//
 // In libjson they are both represented as children of a JSON structure with type JSON_TOBJECT or JSON_TARRAY
-// Each child is a JSON struct on it's own and contains the name and the value of the pair. This means that the members can be looked at independently from the parent object since they store their own name
-// 
-// The children are stored in a double linked list. The difference between object members and array elements is that the name is NULL
-// 
-// To retrieve a member of a certain name, use json_get_member(object), this iterates the linked list until a match is found, and returns NULL if no match is found at end
-// 
-// If you want to loop through the members or elements of a object or array, use json_get_members, or json_get_elements respectively
-// 
+// Each child is a JSON struct on it's own and contains the name and the value of the pair. This means that the members
+// can be looked at independently from the parent object since they store their own name
+//
+// The children are stored in a double linked list. The difference between object members and array elements is that the
+// name is NULL
+//
+// To retrieve a member of a certain name, use json_get_member(object), this iterates the linked list until a match is
+// found, and returns NULL if no match is found at end
+//
+// If you want to loop through the members or elements of a object or array, use json_get_members, or json_get_elements
+// respectively
+//
 // This will return the first JSON struct in the linked list, the next item can be retrieved with json_get_next(member)
-// 
+//
 // Example:
 // ```
 // JSON* root = json_loadfile("example.json");
@@ -61,22 +67,25 @@
 // }
 // json_destroy(root);
 // ```
-// 
+//
 // ### Strings
 // A JSON struct with type string contains a copy of the assigned zero terminated string
-// 
-// The value of the string can be retrieved with json_get_string, this will return the pointer to the internal string and should no be freed, return NULL if not JSON_TSTRING.
-// The validity of the pointer is not guaranteed after json_set_string or similar call. You can write to the string but not realloc it. Long term storage of the return value is not recommended
-// 
+//
+// The value of the string can be retrieved with json_get_string, this will return the pointer to the internal string
+// and should no be freed, return NULL if not JSON_TSTRING. The validity of the pointer is not guaranteed after
+// json_set_string or similar call. You can write to the string but not realloc it. Long term storage of the return
+// value is not recommended
+//
 // ### Numbers and Bools
-// Numbers represent a double precision floating point value. Bools are also a type of number with either the value 1 or 0
-// 
+// Numbers represent a double precision floating point value. Bools are also a type of number with either the value 1 or
+// 0
+//
 // ### Null
 // Null is a valid json type and has no other use than indicate the absence of a value
 
 // LICENSE
 // See the end of the file for license
-// 
+//
 
 #ifndef LIBJSON_H
 #define LIBJSON_H
@@ -300,7 +309,7 @@ struct JSONStringStream
 // Writes to string stream
 // If escape is 1, control characters will be escaped as two characters
 // Escaping decreases performance
-void json_ss_write(struct JSONStringStream* ss, const char* str, int escape)
+static void json_ss_write(struct JSONStringStream* ss, const char* str, int escape)
 {
 	if (str == NULL)
 	{
@@ -380,16 +389,11 @@ void json_ss_write(struct JSONStringStream* ss, const char* str, int escape)
 	}
 }
 
-float json_max(float a, float b)
-{
-	return (a > b ? a : b);
-}
-
 // Converts a double to a string
 // Precision indicates the max digits to include after the comma
 // Prints up to precision digits after the comma, can write less. Can be used to print integers, where the comma is not
 // written Returns how many characters were written
-int json_ftos(double num, char* buf, int precision)
+static int json_ftos(double num, char* buf, int precision)
 {
 	if (isinf(num))
 	{
@@ -455,7 +459,7 @@ int json_ftos(double num, char* buf, int precision)
 }
 
 // Convert a json valid number representation from string to double
-char* json_stof(char* str, double* out)
+static char* json_stof(char* str, double* out)
 {
 	double result = 0;
 	// Signifies if read past period
@@ -536,7 +540,7 @@ char* json_stof(char* str, double* out)
 
 // Reads from start quote to end quote and takes escape characters into consideration
 // Allocates memory for output string; need to be freed manually
-char* json_read_quote(char* str, char** out)
+static char* json_read_quote(char* str, char** out)
 {
 	// Skip past start quote
 	while (*str != '"')
@@ -643,20 +647,27 @@ struct JSON
 // Constructors
 JSON* json_create_empty()
 {
-	JSON* object = calloc(1, sizeof(JSON));
+	JSON* object = JSON_MALLOC(sizeof(JSON));
 	object->type = JSON_TINVALID;
+	object->name = NULL;
+	object->stringval = NULL;
+	object->numval = 0;
+	object->members = NULL;
+	object->count = 0;
+	object->prev = NULL;
+	object->next = NULL;
 	return object;
 }
 JSON* json_create_null()
 {
-	JSON* object = calloc(1, sizeof(JSON));
+	JSON* object = json_create_empty();
 	object->type = JSON_TNULL;
 	return object;
 }
 
 JSON* json_create_string(const char* str)
 {
-	JSON* object = calloc(1, sizeof(JSON));
+	JSON* object = json_create_empty();
 	object->type = JSON_TSTRING;
 	object->stringval = strduplicate(str);
 	return object;
@@ -664,7 +675,7 @@ JSON* json_create_string(const char* str)
 
 JSON* json_create_number(double value)
 {
-	JSON* object = calloc(1, sizeof(JSON));
+	JSON* object = json_create_empty();
 	object->type = JSON_TNUMBER;
 	object->numval = value;
 	return object;
@@ -672,14 +683,14 @@ JSON* json_create_number(double value)
 
 JSON* json_create_object()
 {
-	JSON* object = calloc(1, sizeof(JSON));
+	JSON* object = json_create_empty();
 	object->type = JSON_TOBJECT;
 	return object;
 }
 
 JSON* json_create_array()
 {
-	JSON* object = calloc(1, sizeof(JSON));
+	JSON* object = json_create_empty();
 	object->type = JSON_TARRAY;
 	return object;
 }
@@ -993,7 +1004,7 @@ JSON* json_loadfile(const char* filepath)
 	fread(buf, 1, size, fp);
 	fclose(fp);
 
-	JSON* root = JSON_MALLOC(sizeof(JSON));
+	JSON* root = json_create_empty();
 	if (json_load(root, buf) == NULL)
 	{
 		char msg[512];
@@ -1009,7 +1020,7 @@ JSON* json_loadfile(const char* filepath)
 }
 JSON* json_loadstring(char* str)
 {
-	JSON* root = JSON_MALLOC(sizeof(JSON));
+	JSON* root = json_create_empty();
 	if (json_load(root, str) == NULL)
 	{
 		JSON_MESSAGE("String contains none or invalid json data");
@@ -1070,7 +1081,7 @@ char* json_load(JSON* object, char* str)
 					str++;
 
 				// Load the json with what is after the ':'
-				JSON* new_object = JSON_MALLOC(sizeof(JSON));
+				JSON* new_object = json_create_empty();
 
 				// Load the child element from the string and skip over that string
 				char* tmp_buf = json_load(new_object, str);
@@ -1139,7 +1150,7 @@ char* json_load(JSON* object, char* str)
 			// Read elements of array
 
 			{
-				JSON* new_object = JSON_MALLOC(sizeof(JSON));
+				JSON* new_object = json_create_empty();
 
 				// Load the element from the string
 				char* tmp_buf = json_load(new_object, str);

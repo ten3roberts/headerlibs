@@ -44,16 +44,29 @@ int test_hashtable()
 	}
 
 	hashtable_print(table, stdout);
-	struct Person* p = hashtable_find(table, "Aletha");
-	if (p)
+	struct Person* aletha = hashtable_find(table, "Aletha");
+	if (aletha)
 	{
-		printf("%s is %d years old\n", p->name, p->age);
+		printf("%s is %d years old\n", aletha->name, aletha->age);
 	}
 	else
 	{
 		printf("Could not locate person\n");
 		return -1;
 	}
+
+	// Test iterator
+	struct Person* p = NULL;
+	hashtable_iterator* it = hashtable_iterator_begin(table);
+	uint32_t find_count = 0;
+	printf("Iterating hashtable\n");
+	while ((p = hashtable_iterator_next(it)))
+	{
+		++find_count;
+		printf("%s is %d years old\n", p->name, p->age);
+	}
+	assert(find_count == hashtable_get_count(table));
+	hashtable_iterator_end(it);
 
 	struct Person* pfree = NULL;
 	while ((pfree = hashtable_pop(table)))
@@ -110,9 +123,9 @@ int main()
 		printf("Hash table test failed\n");
 		return -1;
 	}
-	test_mempool(2);
-	test_mempool(8);
-	test_mempool(32);
+	//test_mempool(2);
+	//test_mempool(8);
+	//test_mempool(32);
 
 	test_json();
 	mp_print_locations();

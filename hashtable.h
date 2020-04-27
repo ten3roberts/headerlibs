@@ -48,6 +48,8 @@
 typedef struct hashtable_t Hashtable;
 typedef struct hashtable_t hashtable_t;
 
+typedef struct hashtable_iterator hashtable_iterator;
+
 // Creates a hashtable with the specified functionality
 // hashfunc should be the function that generates a hash from the key
 // compfunc compares two keys and returns 0 on match
@@ -84,7 +86,18 @@ void hashtable_destroy(hashtable_t* hashtable);
 // Prints the hash table to a file descriptor, use for debug purposes
 void hashtable_print(hashtable_t* hashtable, FILE* fp);
 
+// Starts and returns an iterator
+// An empty table returns a valid iterator, but hashtable_iterator_next will return NULL directly
+hashtable_iterator* hashtable_iterator_begin(hashtable_t* hashtable);
+// Returns data at location and moves to the next
+// Bahaviour is undefines if hashtable resizes
+void* hashtable_iterator_next(hashtable_iterator* it);
+// Ends and frees an iterator
+void hashtable_iterator_end(hashtable_iterator* it);
+
+// Predefined hash function
 uint32_t hashtable_hashfunc_string(const void* pkey);
+// Predefined hash function
 int32_t hashtable_comp_string(const void* pkey1, const void* pkey2);
 
 #ifdef HASHTABLE_IMPLEMENTATION
@@ -124,6 +137,13 @@ struct hashtable_t
 	// How many items are in the table, including
 	uint32_t count;
 	struct hashtable_item** items;
+};
+
+struct hashtable_iterator
+{
+	hashtable_t* table;
+	struct hashtable_item* item;
+	uint32_t index;
 };
 
 hashtable_t* hashtable_create(uint32_t (*hashfunc)(const void*), int32_t (*compfunc)(const void*, const void*))
@@ -359,6 +379,58 @@ void hashtable_print(hashtable_t* hashtable, FILE* fp)
 	}
 }
 
+// Starts and returns an iterator
+hashtable_iterator* hashtable_iterator_begin(hashtable_t* hashtable)
+{
+	hashtable_iterator* it = malloc(sizeof(hashtable_iterator));
+	it->table = hashtable;
+	it->item = NULL;
+	// Find first slot/bucket with data
+	for (it->index = 0; it->index < hashtable->size; it->index++)
+	{
+		if (hashtable->items[it->index] != NULL)
+		{
+			it->item = hashtable->items[it->index];
+			break;
+		}
+	}
+	return it;
+}
+// Returns data at location and moves to the next
+void* hashtable_iterator_next(hashtable_iterator* it)
+{
+	// Iterator has reached end
+	if (it->item == NULL)
+		return NULL;
+
+	struct hashtable_item* prev_data = it->item->data;
+	// Move to next in chain
+	if (it->item->next)
+	{
+		it->item = it->item->next;
+		return prev_data;
+	}
+
+	// Look for next slot/bucket
+	hashtable_t* table = it->table;
+	for (++it->index; it->index < table->size; it->index++)
+	{
+		if (table->items[it->index] != NULL)
+		{
+			it->item = table->items[it->index];
+			return prev_data;
+		}
+	}
+	// At end
+	it->item = NULL;
+	return prev_data;
+}
+// Ends and frees an iterator
+void hashtable_iterator_end(hashtable_iterator* iterator)
+{
+	free(iterator);
+}
+
 // Common Hash functions
 uint32_t hashtable_hashfunc_string(const void* pkey)
 {
@@ -384,19 +456,19 @@ int32_t hashtable_comp_string(const void* pkey1, const void* pkey2)
 
 // ========LICENSE========
 // MIT License
-// 
+//
 // Copyright (c) 2020 Tim Roberts
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE

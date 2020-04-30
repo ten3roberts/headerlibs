@@ -2,6 +2,7 @@
 #define MP_CHECK_FULL
 #include "magpie.h"
 #define HASHTABLE_IMPLEMENTATION
+#define hashtable_create(hashfunc, compfunc) mp_bind(hashtable_create_internal(hashfunc, compfunc));
 #include "hashtable.h"
 
 #define MEMPOOL_IMPLEMENTATION
@@ -76,7 +77,7 @@ int test_hashtable()
 	printf("After freeing\n");
 	hashtable_print(table, stdout);
 
-	hashtable_destroy(table);
+	//hashtable_destroy(table);
 	return 0;
 }
 

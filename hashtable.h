@@ -18,6 +18,7 @@
 // -> Table will resize up and down in powers of two automatically
 // -> Note, must be a power of 2
 // HASHTABLE_MALLOC, HASHTABLE_CALLOC, and HASHTABLE_FREE to define your own allocators
+// hashtable_create to make a wrapper for hashtable_create_internal allowing for custom leak detection
 
 // Basic usage
 // hashtable_t storing arbitrary type with string keys
@@ -55,11 +56,16 @@ typedef struct hashtable_iterator hashtable_iterator;
 // hashfunc should be the function that generates a hash from the key
 // compfunc compares two keys and returns 0 on match
 // Note, the key pointer should be valid as long as it is in the map
-hashtable_t* hashtable_create(uint32_t (*hashfunc)(const void*), int32_t (*compfunc)(const void*, const void*));
+// Macro can be changed to allow for custom leak detection but needs to call hashtable_create_internal
+#ifndef hashtable_create
+#define hashtable_create(hashfund, compfunc) hashtable_create_internal(hashfunc, compfunc);
+#endif
 
 // Creates a hashtable with the string hash function
 // Shorthand for hashtable_create(hashtable_hashfunc_string, hashtable_comp_string);
-hashtable_t* hashtable_create_string();
+#define hashtable_create_string() hashtable_create(hashtable_hashfunc_string, hashtable_comp_string)
+
+hashtable_t* hashtable_create_internal(uint32_t (*hashfunc)(const void*), int32_t (*compfunc)(const void*, const void*));
 
 // Inserts an item associated with a key into the hashtable
 // If key already exists, it is returned and replaced
@@ -159,7 +165,7 @@ struct hashtable_iterator
 	uint32_t index;
 };
 
-hashtable_t* hashtable_create(uint32_t (*hashfunc)(const void*), int32_t (*compfunc)(const void*, const void*))
+hashtable_t* hashtable_create_internal(uint32_t (*hashfunc)(const void*), int32_t (*compfunc)(const void*, const void*))
 {
 	hashtable_t* hashtable = HASHTABLE_MALLOC(sizeof(hashtable_t));
 	hashtable->hashfunc = hashfunc;
@@ -168,11 +174,6 @@ hashtable_t* hashtable_create(uint32_t (*hashfunc)(const void*), int32_t (*compf
 	hashtable->size = HASHTABLE_DEFAULT_SIZE;
 	hashtable->items = HASHTABLE_CALLOC(HASHTABLE_DEFAULT_SIZE, sizeof(struct hashtable_item*));
 	return hashtable;
-}
-
-hashtable_t* hashtable_create_string()
-{
-	return hashtable_create(hashtable_hashfunc_string, hashtable_comp_string);
 }
 
 // Inserts an already allocated item struct into the hash table

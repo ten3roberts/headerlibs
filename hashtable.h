@@ -58,7 +58,7 @@ typedef struct hashtable_iterator hashtable_iterator;
 // Note, the key pointer should be valid as long as it is in the map
 // Macro can be changed to allow for custom leak detection but needs to call hashtable_create_internal
 #ifndef hashtable_create
-#define hashtable_create(hashfund, compfunc) hashtable_create_internal(hashfunc, compfunc);
+#define hashtable_create(hashfunc, compfunc) hashtable_create_internal(hashfunc, compfunc);
 #endif
 
 // Creates a hashtable with the string hash function

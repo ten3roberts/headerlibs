@@ -17,6 +17,7 @@
 // HASHTABLE_DEFAULT_SIZE (default 16) decides the default size of the hashtable
 // -> Table will resize up and down in powers of two automatically
 // -> Note, must be a power of 2
+// HASHTABLE_MALLOC, HASHTABLE_CALLOC, and HASHTABLE_FREE to define your own allocators
 
 // Basic usage
 // hashtable_t storing arbitrary type with string keys
@@ -113,6 +114,18 @@ int32_t hashtable_comp_string(const void* pkey1, const void* pkey2);
 #define HASHTABLE_SIZE_TOLERANCE 70
 #endif
 
+#ifndef HASHTABLE_MALLOC
+#define HASHTABLE_MALLOC(s) malloc(s)
+#endif
+
+#ifndef HASHTABLE_CALLOC
+#define HASHTABLE_CALLOC(n, s) calloc(n, s)
+#endif
+
+#ifndef HASHTABLE_FREE
+#define HASHTABLE_FREE(p) free(p)
+#endif
+
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
@@ -148,12 +161,12 @@ struct hashtable_iterator
 
 hashtable_t* hashtable_create(uint32_t (*hashfunc)(const void*), int32_t (*compfunc)(const void*, const void*))
 {
-	hashtable_t* hashtable = malloc(sizeof(hashtable_t));
+	hashtable_t* hashtable = HASHTABLE_MALLOC(sizeof(hashtable_t));
 	hashtable->hashfunc = hashfunc;
 	hashtable->compfunc = compfunc;
 	hashtable->count = 0;
 	hashtable->size = HASHTABLE_DEFAULT_SIZE;
-	hashtable->items = calloc(HASHTABLE_DEFAULT_SIZE, sizeof(struct hashtable_item*));
+	hashtable->items = HASHTABLE_CALLOC(HASHTABLE_DEFAULT_SIZE, sizeof(struct hashtable_item*));
 	return hashtable;
 }
 
@@ -198,7 +211,7 @@ static void* hashtable_insert_internal(hashtable_t* hashtable, struct hashtable_
 				item->next = cur->next;
 
 				void* retdata = cur->data;
-				free(cur);
+				HASHTABLE_FREE(cur);
 				return retdata;
 			}
 			prev = cur;
@@ -226,7 +239,7 @@ static void hashtable_resize(hashtable_t* hashtable, int32_t direction)
 		return;
 
 	// Allocate the larger list
-	hashtable->items = calloc(hashtable->size, sizeof(struct hashtable_item*));
+	hashtable->items = HASHTABLE_CALLOC(hashtable->size, sizeof(struct hashtable_item*));
 
 	for (uint32_t i = 0; i < old_size; i++)
 	{
@@ -244,7 +257,7 @@ static void hashtable_resize(hashtable_t* hashtable, int32_t direction)
 			cur = next;
 		}
 	}
-	free(old_items);
+	HASHTABLE_FREE(old_items);
 }
 
 void* hashtable_insert(hashtable_t* hashtable, const void* key, void* data)
@@ -253,7 +266,7 @@ void* hashtable_insert(hashtable_t* hashtable, const void* key, void* data)
 	if (++hashtable->count * 100 >= hashtable->size * HASHTABLE_SIZE_TOLERANCE)
 		hashtable_resize(hashtable, 1);
 
-	struct hashtable_item* item = malloc(sizeof(struct hashtable_item));
+	struct hashtable_item* item = HASHTABLE_MALLOC(sizeof(struct hashtable_item));
 	item->key = key;
 	item->data = data;
 	item->next = NULL;
@@ -301,7 +314,7 @@ void* hashtable_remove(hashtable_t* hashtable, const void* key)
 				prev->next = cur->next;
 
 			void* cur_data = cur->data;
-			free(cur);
+			HASHTABLE_FREE(cur);
 
 			// Check if table needs to be resized down after removing item
 			if (--hashtable->count * 100 < hashtable->size * (100 - HASHTABLE_SIZE_TOLERANCE))
@@ -324,7 +337,7 @@ void* hashtable_pop(hashtable_t* hashtable)
 		{
 			hashtable->items[i] = cur->next;
 			void* cur_data = cur->data;
-			free(cur);
+			HASHTABLE_FREE(cur);
 
 			// Check if table needs to be resized down after removing item
 			if (--hashtable->count * 100 <= hashtable->size * (100 - HASHTABLE_SIZE_TOLERANCE))
@@ -351,12 +364,12 @@ void hashtable_destroy(hashtable_t* hashtable)
 		while (cur)
 		{
 			next = cur->next;
-			free(cur);
+			HASHTABLE_FREE(cur);
 			cur = next;
 		}
 	}
-	free(hashtable->items);
-	free(hashtable);
+	HASHTABLE_FREE(hashtable->items);
+	HASHTABLE_FREE(hashtable);
 }
 
 // Debug function
@@ -382,7 +395,7 @@ void hashtable_print(hashtable_t* hashtable, FILE* fp)
 // Starts and returns an iterator
 hashtable_iterator* hashtable_iterator_begin(hashtable_t* hashtable)
 {
-	hashtable_iterator* it = malloc(sizeof(hashtable_iterator));
+	hashtable_iterator* it = HASHTABLE_MALLOC(sizeof(hashtable_iterator));
 	it->table = hashtable;
 	it->item = NULL;
 	// Find first slot/bucket with data
@@ -428,7 +441,7 @@ void* hashtable_iterator_next(hashtable_iterator* it)
 // Ends and frees an iterator
 void hashtable_iterator_end(hashtable_iterator* iterator)
 {
-	free(iterator);
+	HASHTABLE_FREE(iterator);
 }
 
 // Common Hash functions

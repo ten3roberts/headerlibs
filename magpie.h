@@ -37,6 +37,11 @@
 
 // MP_CHECK_FULL to define MP_REPLACE_STD, MP_CHECK_OVERFLOW, MP_FILL_ON_FREE
 
+// Use mp_bind to associate a pointer with another file and line.
+// Useful if you have a function allocating and you want to store what called the function instead
+// Passes the argument through so it can be used as a wrapper
+// If the pointer currently isn't tracked, nothing will happen
+
 // License is at the end of the file
 
 // https://github.com/ten3roberts/magpie
@@ -97,12 +102,14 @@ void* mp_malloc_internal(size_t size, const char* file, uint32_t line);
 void* mp_calloc_internal(size_t num, size_t size, const char* file, uint32_t line);
 void* mp_realloc_internal(void* ptr, size_t size, const char* file, uint32_t line);
 void mp_free_internal(void* ptr, const char* file, uint32_t line);
+void* mp_bind_internal(void* ptr, const char* file, uint32_t line);
 
 #define mp_validate(ptr)	  mp_validate_internal(ptr, __FILE__, __LINE__)
 #define mp_malloc(size)		  mp_malloc_internal(size, __FILE__, __LINE__)
 #define mp_calloc(num, size)  mp_calloc_internal(num, size, __FILE__, __LINE__)
 #define mp_realloc(ptr, size) mp_realloc_internal(ptr, size, __FILE__, __LINE__)
 #define mp_free(ptr)		  mp_free_internal(ptr, __FILE__, __LINE__)
+#define mp_bind(ptr)		  mp_bind_internal(ptr, __FILE__, __LINE__);
 
 // End of header
 // Implementation
@@ -313,6 +320,11 @@ void mp_free_internal(void* ptr, const char* file, uint32_t line)
 #endif
 	mp_alloc_count--;
 	free(ptr);
+}
+
+void* mp_bind_internal(void* ptr, const char* file, uint32_t line)
+{
+	return ptr;
 }
 
 #else
@@ -566,6 +578,20 @@ void mp_free_internal(void* ptr, const char* file, uint32_t line)
 	memset(block->bytes, MP_BUFFER_PAD_VAL, block->size);
 #endif
 	free(block);
+}
+
+void* mp_bind_internal(void* ptr, const char* file, uint32_t line)
+{
+	struct MemBlock* block = mp_remove(ptr);
+	block->file = file;
+	block->line = line;
+	if (block)
+	{
+		mp_insert(block, file, line);
+		return ptr;
+	}
+
+	return ptr;
 }
 
 void mp_insert(struct MemBlock* block, const char* file, uint32_t line)

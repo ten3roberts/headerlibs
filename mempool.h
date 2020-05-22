@@ -19,6 +19,7 @@
 // MEMPOOL_FREE to define your own dealloctor when freeing the pool
 // Note: custom allocators should have similar behavious as malloc, realloc, and free
 // MEMPOOL_MESSAGE (default fputs(s, stderr) to define your own error message callback
+// MEMPOOL_MAGPIE to allow magpie to track where the mempool_alloc originated from
 
 #ifndef MEMPOOL_H
 #define MEMPOOL_H
@@ -60,7 +61,8 @@ typedef struct mempool_t
 
 // Returnes an element_size chunk of memory from the pool
 // Either tries to fill a freed spot, take at the end of a block, or malloc a new block
-void* mempool_alloc(mempool_t* pool);
+#define mempool_alloc(pool) mempool_alloc_internal(pool, __FILE__, __LINE__)
+void* mempool_alloc_internal(mempool_t* pool, const char* file, uint32_t line);
 
 // Frees a chunk from the pool
 // Note: element must be previosly allocated from the pool
@@ -87,7 +89,7 @@ void mempool_free(mempool_t* pool, void* element);
 
 // Returnes an element_size chunk of memory from the pool
 // Either tries to fill a freed spot, take at the end of a block, or malloc a new block
-void* mempool_alloc(mempool_t* pool)
+void* mempool_alloc_internal(mempool_t* pool, const char* file, uint32_t line)
 {
 	// First check for freed blocks
 	if (pool->free_elements)
@@ -115,6 +117,10 @@ void* mempool_alloc(mempool_t* pool)
 		pool->blocks = tmp;
 		// Allocate the block
 		pool->blocks[pool->block_count - 1] = malloc(pool->block_size);
+		// Make magpie detect the called of this function
+#ifdef MEMPOOL_MAGPIE
+		mp_bind_internal(pool->blocks[pool->block_count - 1], file, line);
+#endif
 		// Start at the beginning of new pool
 		pool->block_end = 0;
 		if (pool->blocks[pool->block_count - 1] == NULL)

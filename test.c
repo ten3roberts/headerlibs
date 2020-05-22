@@ -5,7 +5,10 @@
 #define hashtable_create(hashfunc, compfunc) mp_bind(hashtable_create_internal(hashfunc, compfunc));
 #include "hashtable.h"
 
+#define MEMPOOL_ALLOC(pool) mp_bind(mempool_alloc_internal(pool))
+
 #define MEMPOOL_IMPLEMENTATION
+#define MEMPOOL_MAGPIE
 #include "mempool.h"
 
 #define LIBJSON_IMPLEMENTATION
@@ -86,11 +89,11 @@ int test_hashtable()
 
 int test_mempool(int pool_size)
 {
-	Mempool* pool = mempool_create(sizeof(struct Person), pool_size);
+	mempool_t pool = MEMPOOL_INIT(sizeof(struct Person), pool_size);
 	struct Person* people[lenof(names)];
 	for (uint32_t i = 0; i < lenof(names); i++)
 	{
-		people[i] = mempool_alloc(pool);
+		people[i] = mempool_alloc(&pool);
 		assert(people[i] != NULL);
 		people[i]->age = i;
 		snprintf(people[i]->name, sizeof(people[i]->name), "%s", names[i]);
@@ -101,7 +104,6 @@ int test_mempool(int pool_size)
 	{
 		printf("[%4u]: name: %s, age: %d\n", i, people[i]->name, people[i]->age);
 	}
-	mempool_destroy(pool);
 	return 0;
 }
 
@@ -122,21 +124,21 @@ int test_json()
 
 int main()
 {
-	if (test_hashtable())
+	/*if (test_hashtable())
 	{
 		printf("Hash table test failed\n");
 		return -1;
-	}
-	//test_mempool(2);
-	//test_mempool(8);
-	//test_mempool(32);
+	}*/
+	test_mempool(2);
+	test_mempool(8);
+	test_mempool(32);
 
-	test_json();
+	//test_json();
 	mp_print_locations();
+	mp_terminate();
 	if (mp_get_count() > 0)
 	{
 		printf("Memory leaked!\n");
 		return -10;
 	}
-	mp_terminate();
 }

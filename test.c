@@ -11,6 +11,9 @@
 #define LIBJSON_IMPLEMENTATION
 #include "libjson.h"
 
+#define LIST_IMPLEMENTATION
+#include "list.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>

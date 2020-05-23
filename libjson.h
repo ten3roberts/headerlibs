@@ -391,8 +391,8 @@ static void json_ss_write(struct JSONStringStream* ss, const char* str, int esca
 
 // Converts a double to a string
 // Precision indicates the max digits to include after the comma
-// Prints up to precision digits after the comma, can write less. Can be used to print integers, where the comma is not
-// written Returns how many characters were written
+// Prints up to precision digits after the comma, can write less. Can be used to print integers, where the comma is not written
+// Returns how many characters were written
 static int json_ftos(double num, char* buf, int precision)
 {
 	if (isinf(num))

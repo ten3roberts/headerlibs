@@ -64,8 +64,10 @@ typedef struct hashtable_iterator hashtable_iterator;
 // Creates a hashtable with the string hash function
 // Shorthand for hashtable_create(hashtable_hashfunc_string, hashtable_comp_string);
 #define hashtable_create_string() hashtable_create(hashtable_hashfunc_string, hashtable_comp_string)
+#define hashtable_create_uint32() hashtable_create(hashtable_hashfunc_uint32, hashtable_comp_uint32)
 
-hashtable_t* hashtable_create_internal(uint32_t (*hashfunc)(const void*), int32_t (*compfunc)(const void*, const void*));
+hashtable_t* hashtable_create_internal(uint32_t (*hashfunc)(const void*),
+									   int32_t (*compfunc)(const void*, const void*));
 
 // Inserts an item associated with a key into the hashtable
 // If key already exists, it is returned and replaced
@@ -103,8 +105,13 @@ void* hashtable_iterator_next(hashtable_iterator* it);
 void hashtable_iterator_end(hashtable_iterator* it);
 
 // Predefined hash function
-uint32_t hashtable_hashfunc_string(const void* pkey);
+uint32_t hashtable_hashfunc_uint32(const void* pkey);
+// Predefined compare function
+int32_t hashtable_comp_uint32(const void* pkey1, const void* pkey2);
+
 // Predefined hash function
+uint32_t hashtable_hashfunc_string(const void* pkey);
+// Predefined compare function
 int32_t hashtable_comp_string(const void* pkey1, const void* pkey2);
 
 #ifdef HASHTABLE_IMPLEMENTATION
@@ -446,6 +453,20 @@ void hashtable_iterator_end(hashtable_iterator* iterator)
 }
 
 // Common Hash functions
+uint32_t hashtable_hashfunc_uint32(const void* pkey)
+{
+	uint32_t key = *(uint32_t*)pkey;
+	key = ((key >> 16) ^ key) * 0x45d9f3b;
+	key = ((key >> 16) ^ key) * 0x45d9f3b;
+	key = (key >> 16) ^ key;
+	return key;
+}
+
+int32_t hashtable_comp_uint32(const void* pkey1, const void* pkey2)
+{
+	return (*(uint32_t*)pkey1 == *(uint32_t*)pkey2) == 0;
+}
+
 uint32_t hashtable_hashfunc_string(const void* pkey)
 {
 	char* key = (char*)pkey;

@@ -34,11 +34,11 @@ struct Person
 
 int test_hashtable()
 {
-	Hashtable* table = hashtable_create_string();
+	Hashtable* table = hashtable_create_uint32();
 	assert(table != NULL);
 
 	// Generate random people
-	for (int i = 0; i < sizeof names / sizeof *names; i++)
+	for (int i = 0; i < 5; i++)
 	{
 		struct Person* p = malloc(sizeof(struct Person));
 		char* name = names[i];
@@ -46,12 +46,13 @@ int test_hashtable()
 		int lname = strlen(name);
 		lname = lname > sizeof p->name ? sizeof p->name : lname;
 		p->name[lname] = '\0';
-		p->age = rand() % 20 + 10;
-		free(hashtable_insert(table, p->name, p));
+		p->age = i;
+		free(hashtable_insert(table, &p->age, p));
 	}
 
 	hashtable_print(table, stdout);
-	struct Person* aletha = hashtable_find(table, "Aletha");
+	int age = 2;
+	struct Person* aletha = hashtable_find(table, &age);
 	if (aletha)
 	{
 		printf("%s is %d years old\n", aletha->name, aletha->age);
@@ -83,7 +84,7 @@ int test_hashtable()
 	printf("After freeing\n");
 	hashtable_print(table, stdout);
 
-	//hashtable_destroy(table);
+	hashtable_destroy(table);
 	return 0;
 }
 
@@ -104,6 +105,7 @@ int test_mempool(int pool_size)
 	{
 		printf("[%4u]: name: %s, age: %d\n", i, people[i]->name, people[i]->age);
 	}
+
 	return 0;
 }
 
@@ -124,11 +126,11 @@ int test_json()
 
 int main()
 {
-	/*if (test_hashtable())
+	if (test_hashtable())
 	{
 		printf("Hash table test failed\n");
 		return -1;
-	}*/
+	}
 	test_mempool(2);
 	test_mempool(8);
 	test_mempool(32);

@@ -15,7 +15,7 @@ Library | Description
 **[libjson](libjson.h)**		| A json library for parsing and creating json files. From my repo [github.com/ten3roberts/libjson](https://github.com/ten3roberts/libjson)
 ## General documentation
 
-Documentation for the specific libraries can be found withing their header file
+Documentation for the specific libraries can be found within their header file
 
 To integrate any library, drop the single header file into your project. Define $(LIBRARY_NAME)_IMPLEMENTATION in ONE C file. See specific documentation in the header for further information
 

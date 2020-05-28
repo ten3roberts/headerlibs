@@ -30,6 +30,8 @@ Configuring is done at build time by adding defines before including the header,
 
 If you use several header only libraries in a project, you can create a C file that defines all implementations of the libraries
 
+They will not produce conflicting symbols and can be used to integrate the standalone libraries to work together, most commonly with magpie leak detection
+
 See the specific documentation for further details and usage
 
 ##

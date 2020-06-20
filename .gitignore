@@ -4,3 +4,9 @@ obj/
 Makefile
 *.make
 out.json
+
+CMakeFiles
+CMakeCache.txt
+*.cmake
+
+test

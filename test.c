@@ -43,7 +43,7 @@ int test_hashtable()
 		struct Person* p = malloc(sizeof(struct Person));
 		char* name = names[i];
 		memcpy(p->name, name, sizeof(p->name));
-		int lname = strlen(name);
+		size_t lname = strlen(name);
 		lname = lname > sizeof p->name ? sizeof p->name : lname;
 		p->name[lname] = '\0';
 		p->age = i;
@@ -122,6 +122,7 @@ int test_json()
 
 	json_destroy(root);
 	mp_terminate();
+	return 0;
 }
 
 int main()

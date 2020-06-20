@@ -418,7 +418,7 @@ static int json_ftos(double num, char* buf, int precision)
 		a += 10;
 	a /= 10;
 
-	int dec_pos = precision;
+	size_t dec_pos = precision;
 
 	// Carried the one, need to round once more
 	while (a % 10 == 0 && a && a > num)

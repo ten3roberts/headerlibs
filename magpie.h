@@ -267,7 +267,7 @@ size_t mp_terminate()
 	return 0;
 }
 
-int mp_validate_internal(void* ptr, const char* file, uint32_t line)
+int mp_validate_internal(__attribute__((unused)) void* ptr, __attribute__((unused)) const char* file, __attribute__((unused)) uint32_t line)
 {
 	MP_MESSAGE("Failed to validate pointer since magpie is disabled in build");
 	return MP_VALIDATE_OK;
@@ -307,7 +307,7 @@ void* mp_calloc_internal(size_t num, size_t size, const char* file, uint32_t lin
 
 void* mp_realloc_internal(void* ptr, size_t size, const char* file, uint32_t line);
 
-void mp_free_internal(void* ptr, const char* file, uint32_t line)
+void mp_free_internal(void* ptr, __attribute__((unused)) const char* file, __attribute__((unused)) uint32_t line)
 {
 #ifdef MP_WARN_NULL
 	if (ptr == NULL)
@@ -322,7 +322,7 @@ void mp_free_internal(void* ptr, const char* file, uint32_t line)
 	free(ptr);
 }
 
-void* mp_bind_internal(void* ptr, const char* file, uint32_t line)
+void* mp_bind_internal(void* ptr, __attribute__((unused)) const char* file, __attribute__((unused)) uint32_t line)
 {
 	return ptr;
 }
